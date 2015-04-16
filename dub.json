@@ -1,0 +1,18 @@
+{
+	"name": "pesutils",
+	"description": "A collection of PES utilities",
+	"copyright": "Copyright © 2015, fratti",
+	"authors": ["fratti"],
+	"targetType": "none",
+	"dependencies": {
+            "pesutils:wesys": "~master"
+	},
+	"subPackages": [
+            {
+                "name":"wesys",
+                "targetType":"executable",
+                "sourcePaths":["wesys/source/"],
+                "importPaths":["wesys/source/"],
+            }
+	],
+}
