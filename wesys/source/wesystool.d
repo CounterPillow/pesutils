@@ -1,39 +1,12 @@
 import std.stdio;
-import std.zlib;
 import std.bitmanip;
-import std.stream;
-import std.exception;
 import std.path;
 import std.file;
 import std.conv;
 
 import std.getopt;
+import peslib.wesys;
 
-struct WESYS_header {
-    static ubyte[8] DEFAULTMAGIC = cast(ubyte[8])"\x00\x10\x01WESYS";
-    ubyte[8] magic;
-    uint compressed_size;
-    uint uncompressed_size;
-    
-    this(InputStream input) {
-        checkMagic(input);
-        input.read(compressed_size);
-        input.read(uncompressed_size);
-    }
-    
-    void checkMagic(InputStream input) {
-        input.read(magic);
-        enforce(magic == DEFAULTMAGIC, new WESYSException(magic, "Not a WESYS file"));
-    }
-}
-
-class WESYSException : Exception {
-    ubyte[8] magic;
-    this(ubyte[8] m, string message) {
-        this.magic = m;
-        super(message);
-    }
-}
 
 enum Action { compress, decompress };
 
@@ -71,21 +44,20 @@ int main(string[] args) {
         }
         foreach(string fpath; files) {
             stderr.writeln("Decompressing ", fpath);
-            auto f = new std.stream.File(fpath, FileMode.In);
-            WESYS_header head;
+            auto srcfile = File(fpath);
+            File dstfile;
+            void[] uncompressed_data;
             try {
-                head = WESYS_header(f);
+                uncompressed_data = uncompressWESYSfile(srcfile);
+                srcfile.close();
             } catch(WESYSException we) {
                 stderr.writeln("Skipping, not a WESYS file.");
                 continue;
             }
             
-            ubyte[] compressed_data = new ubyte[head.compressed_size];
-            f.read(compressed_data);
-            void[] uncompressed_data = uncompress(compressed_data, head.uncompressed_size);
             
-            if(to_stdout) {
-                stdout.rawWrite(uncompressed_data);
+            if (to_stdout) {
+                dstfile = stdout;
             } else {
                 string newname = buildPath(dirName(fpath), prefix ~ baseName(fpath));
                 if (exists(newname)) {
@@ -94,35 +66,38 @@ int main(string[] args) {
                         return 1;
                     }
                 }
-                std.file.write(newname, uncompressed_data);
+                dstfile = File(newname, "w");
             }
-            f.close();
+            dstfile.rawWrite(uncompressed_data);
+            dstfile.close();
         }
     } else if (cli_action == Action.compress) {
         if (prefix == "") {
             prefix = "wesys_";
-            foreach(string fpath; files) {
-                stderr.writeln("Compressing ", fpath);
-                string newname = buildPath(dirName(fpath), prefix ~ baseName(fpath));
+        }
+        foreach(string fpath; files) {
+            stderr.writeln("Compressing ", fpath);
+            auto srcfile = File(fpath);
+            File dstfile;
+            string newname = buildPath(dirName(fpath), prefix ~ baseName(fpath));
+            if (to_stdout) {
+                dstfile = stdout;
+            } else {
                 if (exists(newname)) {
                     if(!force_overwrite) {
                         stderr.writefln("File %s exists in filesystem, aborting. (use --force to overwrite)", newname);
                         return 1;
                     }
                 }
-                if (!exists(fpath)) {
-                    stderr.writefln("No such file or directory: %s", fpath);
-                    return 2;
-                }
-                void[] uncompressed_data = read(fpath);
-                const ubyte[] compressed_data = cast(const(ubyte[]))compress(uncompressed_data, 9);
-                auto f = new std.stream.File(newname, FileMode.Out);
-                f.write(WESYS_header.DEFAULTMAGIC);
-                f.write(to!uint(compressed_data.length));
-                f.write(to!uint(uncompressed_data.length));
-                f.write(compressed_data);
-                f.close();
+                dstfile = File(newname, "w");
             }
+            if (!exists(fpath)) {
+                stderr.writefln("No such file or directory: %s", fpath);
+                return 2;
+            }
+            dstfile.rawWrite(compressWESYSfile(srcfile, 9));
+            srcfile.close();
+            dstfile.close();
         }
     
     }

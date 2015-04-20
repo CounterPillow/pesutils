@@ -13,6 +13,13 @@
                 "targetType":"executable",
                 "sourcePaths":["wesys/source/"],
                 "importPaths":["wesys/source/"],
+                "dependencies":{"pesutils:peslib": "*"},
+            },
+            {
+                "name":"peslib",
+                "targetType":"library",
+                "sourcePaths":["peslib/source/"],
+                "importPaths":["peslib/source/"],
             }
 	],
 }
