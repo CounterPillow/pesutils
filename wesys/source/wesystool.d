@@ -16,6 +16,7 @@ int main(string[] args) {
     string prefix;
     bool to_stdout;
     bool force_overwrite;
+    int compression_level = 9;
     GetoptResult helpInformation;
     
     try {
@@ -25,7 +26,8 @@ int main(string[] args) {
             "action|a", "Action to take", &cli_action,
             "prefix|p", "Prefix for output files", &prefix,
             "stdout|o", "Write to stdout", &to_stdout,
-            "force|f", "Force overwrite files", &force_overwrite
+            "force|f", "Force overwrite files", &force_overwrite,
+            "level|l", "Compression level, default 9", &compression_level
         );
     } catch(Exception e) {
         helpInformation.helpWanted = true;
@@ -36,19 +38,24 @@ int main(string[] args) {
         return 1;
     }
     
+    if (compression_level < 0 || compression_level > 9) {
+        stderr.writefln("Invalid compression level '%s'. Must be between 0 and 9.", compression_level);
+        return 1;
+    }
+    
     files = args[1..$];
     string message;
-    void[] function(File) action_func;
+    void[] delegate(File) action_func;
     
     if (prefix == "") {
         if(cli_action == Action.decompress) {
             prefix = "unwesys_";
             message = "Decompressing ";
-            action_func = &uncompressWESYSfile;
+            action_func = f => uncompressWESYSfile(f);
         } else {
             prefix = "wesys_";
             message = "Compressing ";
-            action_func = function(File f){ return(compressWESYSfile(f, 9));};
+            action_func = f => compressWESYSfile(f, compression_level);
         }
     }
     foreach(string fpath; files) {

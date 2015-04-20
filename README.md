@@ -35,18 +35,21 @@ Allows extracting and compressing WESYS compressed files.
 **Usage:**
 
 ```
-pesutils_wesys --action compress|decompress [--prefix prefix] [--force] [--stdout] FILES...
+pesutils_wesys --action compress|decompress [--prefix prefix] [--force] [--stdout] [--level level] FILES...
+
 ```
 
 The default prefix for newly created compressed files is `wesys_`, the default
 prefix for newly created uncompressed files is `unwesys_`. You may set this 
-yourself by using `--prefix`.
+yourself by using `--prefix` (or `-p`).
 
-The option `--stdout` forces the program to write to stdout instead of creating
+The option `--stdout` (or `-o`) forces the program to write to stdout instead of creating
 files.
 
-The program will not overwrite files, unless `--force` is specified. Otherwise, 
+The program will not overwrite files, unless `--force` (or `-f`) is specified. Otherwise, 
 it will abort as soon as it encounters an already existing file.
+
+The user may set the compression level using `--level` (or `-l`) to a value between 0 and 9, where 0 is the lowest amount of compression and 9 is the highest amount of compression.
 
 License
 -------
