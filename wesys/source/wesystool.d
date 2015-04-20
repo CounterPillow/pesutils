@@ -47,16 +47,18 @@ int main(string[] args) {
     string message;
     void[] delegate(File) action_func;
     
-    if (prefix == "") {
-        if(cli_action == Action.decompress) {
+    if(cli_action == Action.decompress) {
+        if (prefix == "") {
             prefix = "unwesys_";
-            message = "Decompressing ";
-            action_func = f => uncompressWESYSfile(f);
-        } else {
-            prefix = "wesys_";
-            message = "Compressing ";
-            action_func = f => compressWESYSfile(f, compression_level);
         }
+        message = "Decompressing ";
+        action_func = f => uncompressWESYSfile(f);
+    } else {
+        if (prefix == "") {
+            prefix = "wesys_";
+        }
+        message = "Compressing ";
+        action_func = f => compressWESYSfile(f, compression_level);
     }
     foreach(string fpath; files) {
         stderr.writeln(message, fpath);
