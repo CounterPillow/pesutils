@@ -70,7 +70,8 @@ void[] uncompressWESYSfile(File f) {
 }
 
 void[] compressWESYSfile(File srcfile, int level) {
-    void[] src_data = new void[srcfile.size()];
+    enforce(srcfile.size() <= uint.max, new WESYSException("File too large"));
+    void[] src_data = new void[cast(uint)srcfile.size()];
     srcfile.rawRead(src_data);
     return(compressWESYS(src_data, level));
 }
