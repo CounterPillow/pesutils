@@ -29,7 +29,14 @@ int main(string[] args) {
             "force|f", "Force overwrite files", &force_overwrite,
             "level|l", "Compression level, default 9", &compression_level
         );
-    } catch(Exception e) {
+    } catch (GetOptException e) {
+        stderr.writeln(e.msg);
+        stderr.writeln("Use --help for help information.");
+        return 1;
+    }
+    files = args[1..$];
+    if (files.length == 0) {
+        stderr.writeln("No files supplied.");
         helpInformation.helpWanted = true;
     }
     
@@ -43,7 +50,6 @@ int main(string[] args) {
         return 1;
     }
     
-    files = args[1..$];
     string message;
     void[] delegate(File) action_func;
     
