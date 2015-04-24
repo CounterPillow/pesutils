@@ -1,6 +1,8 @@
 PESutils
 ========
 
+[![Build Status](https://travis-ci.org/CounterPillow/pesutils.svg?branch=master)](https://travis-ci.org/CounterPillow/pesutils)
+
 Introduction
 ------------
 
