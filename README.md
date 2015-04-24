@@ -25,6 +25,12 @@ To compile, run the following command:
 dub build pesutils:wesys --compiler=dmd
 ```
 
+### Pre-built Windows binaries
+
+Manually built Windows 32-bit binaries compiled with DMD are available.
+
+**Download:** http://rigged.cunt.blue/pesutils/builds/win32/
+
 Tools
 -----
 
