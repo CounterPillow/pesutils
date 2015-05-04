@@ -69,6 +69,11 @@ void[] uncompressWESYSfile(File f) {
     return(uncompressWESYS(compressed_data, wh.uncompressed_size));
 }
 
+unittest {
+    auto ayy = uncompressWESYSfile(File("testdata/wesys_testfile"));
+    assert(cast(string) ayy == "Hello World!\n");
+}
+
 void[] compressWESYSfile(File srcfile, int level) {
     enforce(srcfile.size() <= uint.max, new WESYSException("File too large"));
     void[] src_data = new void[cast(uint)srcfile.size()];
