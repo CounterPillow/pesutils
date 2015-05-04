@@ -1,3 +1,12 @@
 language: d
 
-script: dub build --compiler=${DC} pesutils:wesys
+install:
+  - dub build --compiler=${DC} pesutils:peslib
+  - dub build --compiler=${DC} pesutils:wesys
+
+script:
+  - dub test --compiler=${DC} pesutils:peslib
+
+notifications:
+  irc:
+    - "implyingrigged.org#comfy"
