@@ -16,23 +16,45 @@ class WESYSException : Exception {
     }
 }
 struct WESYS_header {
-    static ubyte[8] DEFAULTMAGIC = cast(ubyte[8])"\x00\x10\x01WESYS";
+    static ubyte[8] LEMAGIC = cast(ubyte[8])"\x00\x10\x01WESYS";
+    static ubyte[8] BEMAGIC = cast(ubyte[8])"\x00\x01\x01WESYS";
     ubyte[8] magic;
     uint compressed_size;
     uint uncompressed_size;
     
+    @property {
+        Endianness endianness() {
+            if (this.magic[1] == '\x10') {
+                return Endianness.WESYS_LE;
+            } else {
+                return Endianness.WESYS_BE;
+            }
+        }
+    }
+
     this(ubyte[16] header) {
         this.magic = header[0..8];
-        enforce(this.magic == DEFAULTMAGIC,
-                new WESYSException(this.magic, "Not a WESYS file"));
+        if (this.magic == LEMAGIC) {
+            this.compressed_size = littleEndianToNative!(uint, 4)(header[8..12]);
+            this.uncompressed_size = littleEndianToNative!(uint, 4)(header[12..16]);
+        } else if (this.magic == BEMAGIC) {
+            this.compressed_size = bigEndianToNative!(uint, 4)(header[8..12]);
+            this.uncompressed_size = bigEndianToNative!(uint, 4)(header[12..16]);
+        } else {
+            throw new WESYSException(this.magic, "Not a WESYS file");
+        }
         
-        this.compressed_size = littleEndianToNative!(uint, 4)(header[8..12]);
-        this.uncompressed_size = littleEndianToNative!(uint, 4)(header[12..16]);
     }
     
 }
 
-void[] compressWESYS(in void[] buf, int level)
+enum Endianness {
+    WESYS_LE,
+    WESYS_BE
+}
+
+void[] compressWESYS(in void[] buf, int level,
+                     Endianness e = Endianness.WESYS_LE)
 in {
     assert(level > 0);
     assert(level <= 9);
@@ -45,9 +67,18 @@ body {
     */
     auto app = appender!(ubyte[])();
     auto outbuf = cast(ubyte[])compress(buf, level);
-    app.put(cast(ubyte[])WESYS_header.DEFAULTMAGIC);
-    app.put(cast(ubyte[])nativeToLittleEndian(cast(uint)outbuf.length));
-    app.put(cast(ubyte[])nativeToLittleEndian(cast(uint)buf.length));
+    ubyte[4] function(uint x) conv_func;
+    ubyte[] magic;
+    if (e == Endianness.WESYS_LE) {
+        conv_func = &(nativeToLittleEndian!uint);
+        magic = cast(ubyte[])WESYS_header.LEMAGIC;
+    } else if (e == Endianness.WESYS_BE) {
+        conv_func = &(nativeToBigEndian!uint);
+        magic = cast(ubyte[])WESYS_header.BEMAGIC;
+    }
+    app.put(magic);
+    app.put(cast(ubyte[])conv_func(cast(uint)outbuf.length));
+    app.put(cast(ubyte[])conv_func(cast(uint)buf.length));
     app.put(outbuf);
     return(cast(void[])app.data);
 }
@@ -74,9 +105,11 @@ unittest {
     assert(cast(string) ayy == "Hello World!\n");
 }
 
-void[] compressWESYSfile(File srcfile, int level) {
+void[] compressWESYSfile(File srcfile, int level,
+                         Endianness e = Endianness.WESYS_LE)
+{
     enforce(srcfile.size() <= uint.max, new WESYSException("File too large"));
     void[] src_data = new void[cast(uint)srcfile.size()];
     srcfile.rawRead(src_data);
-    return(compressWESYS(src_data, level));
+    return(compressWESYS(src_data, level, e));
 }
