@@ -27,7 +27,8 @@ int main(string[] args) {
             "prefix|p", "Prefix for output files", &prefix,
             "stdout|o", "Write to stdout", &to_stdout,
             "force|f", "Force overwrite files", &force_overwrite,
-            "level|l", "Compression level, default 9", &compression_level
+            "level|l", "Compression level, default 9", &compression_level,
+            std.getopt.config.passThrough
         );
     } catch (GetOptException e) {
         stderr.writeln(e.msg);
@@ -67,15 +68,21 @@ int main(string[] args) {
         action_func = f => compressWESYSfile(f, compression_level);
     }
     foreach(string fpath; files) {
-        stderr.writeln(message, fpath);
-        auto srcfile = File(fpath);
+        File srcfile;
         File dstfile;
         
-        if (!exists(fpath)) {
-            stderr.writefln("No such file or directory: %s", fpath);
-            return 2;
+        if (fpath == "-") {
+            srcfile = stdin;
+            fpath = "stdin";
+        } else {
+            if (!exists(fpath)) {
+                stderr.writefln("No such file or directory: %s", fpath);
+                return 2;
+            }
+            srcfile = File(fpath);
         }
-        
+        stderr.writeln(message, fpath);
+
         if (to_stdout) {
             dstfile = stdout;
         } else {
@@ -88,7 +95,7 @@ int main(string[] args) {
             }
             dstfile = File(newname, "w");
         }
-        
+
         void[] dstdata;
         try {
             dstdata = action_func(srcfile);
