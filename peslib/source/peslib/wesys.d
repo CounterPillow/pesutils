@@ -4,6 +4,7 @@ import std.bitmanip;
 import std.zlib;
 import std.stdio;
 import std.array;
+import std.algorithm.searching;
 
 class WESYSException : Exception {
     ubyte[8] magic;
@@ -16,8 +17,9 @@ class WESYSException : Exception {
     }
 }
 struct WESYS_header {
-    static ubyte[8] LEMAGIC = cast(ubyte[8])"\x00\x10\x01WESYS";
-    static ubyte[8] BEMAGIC = cast(ubyte[8])"\x00\x01\x01WESYS";
+    // Note: The first byte may vary, so this is bytes [1..8] in the header.
+    static ubyte[7] LEMAGIC = cast(ubyte[7])"\x10\x01WESYS";
+    static ubyte[7] BEMAGIC = cast(ubyte[7])"\x01\x01WESYS";
     ubyte[8] magic;
     uint compressed_size;
     uint uncompressed_size;
@@ -34,14 +36,20 @@ struct WESYS_header {
 
     this(ubyte[16] header) {
         this.magic = header[0..8];
-        if (this.magic == LEMAGIC) {
+        if (endsWith(this.magic[], LEMAGIC[])) {
             this.compressed_size = littleEndianToNative!(uint, 4)(header[8..12]);
             this.uncompressed_size = littleEndianToNative!(uint, 4)(header[12..16]);
-        } else if (this.magic == BEMAGIC) {
+        } else if (endsWith(this.magic[], BEMAGIC[])) {
             this.compressed_size = bigEndianToNative!(uint, 4)(header[8..12]);
             this.uncompressed_size = bigEndianToNative!(uint, 4)(header[12..16]);
         } else {
             throw new WESYSException(this.magic, "Not a WESYS file");
+        }
+        if (this.magic[0] != 0) {
+            stderr.writefln("WESYS Warning: "
+                            "First byte is %#x instead of 0x00! "
+                            "Please report this upstream with a sample file.",
+                            this.magic[0]);
         }
         
     }
