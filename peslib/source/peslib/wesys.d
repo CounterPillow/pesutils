@@ -18,8 +18,10 @@ class WESYSException : Exception {
 }
 struct WESYS_header {
     // Note: The first byte may vary, so this is bytes [1..8] in the header.
-    static ubyte[7] LEMAGIC = cast(ubyte[7])"\x10\x01WESYS";
-    static ubyte[7] BEMAGIC = cast(ubyte[7])"\x01\x01WESYS";
+    static const ubyte[7] LEMAGIC = cast(ubyte[7])"\x10\x01WESYS";
+    static const ubyte[7] BEMAGIC = cast(ubyte[7])"\x01\x01WESYS";
+    static const ubyte[7][Endianness.max + 1] MAGICS = [Endianness.WESYS_LE : LEMAGIC,
+                                                 Endianness.WESYS_BE : BEMAGIC];
     ubyte[8] magic;
     uint compressed_size;
     uint uncompressed_size;
@@ -92,20 +94,22 @@ body {
 }
 
 
-void[] uncompressWESYS(void[] buf, size_t destlen = 0u) {
-    return(uncompress(buf, destlen));
+void[] uncompressWESYS(void[] buf) {
+    enforce(buf.length >= 16, new WESYSException("Not a WESYS file"));
+    WESYS_header h = WESYS_header(cast(ubyte[16])buf[0..16]);
+    return(uncompress(buf[16..$], h.uncompressed_size));
 }
 
 void[] uncompressWESYSfile(File f) {
-    ubyte[16] header;
-    ubyte[] ret = f.rawRead(header);
-    // If the file is shorter than 16 bytes, we know it's not valid.
-    enforce(ret.length == 16, new WESYSException("Not a WESYS file"));
-    
-    WESYS_header wh = WESYS_header(header);
-    void[] compressed_data = new void[wh.compressed_size];
-    f.rawRead(compressed_data);
-    return(uncompressWESYS(compressed_data, wh.uncompressed_size));
+    enforce(f.size() >= 16, new WESYSException("Not a WESYS file"));
+    auto h = new ubyte[16];
+    h = f.rawRead(h);
+    auto dec = new WESYSDecompressor(h[0..16]);
+    auto app = appender!(ubyte[])();
+    foreach (ubyte[] c; f.byChunk(4096)) {
+        app.put(cast(ubyte[]) dec.uncompress(c));
+    }
+    return(cast(void[])app.data);
 }
 
 unittest {
@@ -120,4 +124,37 @@ void[] compressWESYSfile(File srcfile, int level,
     void[] src_data = new void[cast(uint)srcfile.size()];
     srcfile.rawRead(src_data);
     return(compressWESYS(src_data, level, e));
+}
+
+class WESYSCompressor : Compress {
+    uint compressed_size;
+    uint decompressed_size;
+
+    this(int level) {
+        super(level);
+    }
+
+    WESYS_header finalise_header(Endianness e = Endianness.WESYS_LE) {
+        WESYS_header h;
+        h.magic = [ubyte(0)] ~ WESYS_header.MAGICS[e];
+        h.compressed_size = this.compressed_size;
+        h.uncompressed_size = this.decompressed_size;
+        return h;
+    }
+
+    override const(void)[] compress(const(void)[] buf) {
+        const(void)[] b = super.compress(buf);
+        this.compressed_size += b.length;
+        this.decompressed_size += buf.length;
+        return buf;
+    }
+}
+
+class WESYSDecompressor : UnCompress {
+    WESYS_header header;
+
+    this(ubyte[16] start) {
+        this.header = WESYS_header(start);
+        super(this.header.uncompressed_size);
+    }
 }
