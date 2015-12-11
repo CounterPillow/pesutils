@@ -1,0 +1,6 @@
+{
+    "name":"wesys",
+    "targetType":"executable",
+    "dependencies":{"pesutils":"*"},
+    "targetPath":"../",
+}

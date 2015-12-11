@@ -1,25 +1,13 @@
 {
-	"name": "pesutils",
-	"description": "A collection of PES utilities",
-	"copyright": "Copyright © 2015, fratti",
-	"authors": ["fratti"],
-	"targetType": "none",
-	"dependencies": {
-            "pesutils:wesys": "~master"
-	},
-	"subPackages": [
-            {
-                "name":"wesys",
-                "targetType":"executable",
-                "sourcePaths":["wesys/source/"],
-                "importPaths":["wesys/source/"],
-                "dependencies":{"pesutils:peslib": "*"},
-            },
-            {
-                "name":"peslib",
-                "targetType":"library",
-                "sourcePaths":["peslib/source/"],
-                "importPaths":["peslib/source/"],
-            }
-	],
+    "name": "pesutils",
+    "description": "A collection of PES modding utilities",
+    "copyright": "Copyright © 2015, Nicolas F.",
+    "license": "Zlib",
+    "authors": ["Nicolas F."],
+    "targetType": "library",
+    "sourcePaths":["peslib/source/"],
+    "importPaths":["peslib/source/"],
+    "subPackages": [
+        "./wesys/",
+    ],
 }

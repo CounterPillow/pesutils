@@ -24,7 +24,7 @@ You will need:
 To compile, run the following command:
 
 ```
-dub build pesutils:wesys --compiler=dmd
+dub build pesutils:wesys
 ```
 
 ### Pre-built Windows binaries
